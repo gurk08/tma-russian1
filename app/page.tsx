@@ -6,8 +6,11 @@ import Task12 from "./components/Task12";
 
 const SESSION_SIZE = 10;
 
+type Mode = "9" | "10" | "12";
+
 export default function Home() {
-  const [mode, setMode] = useState<"9" | "10" | "12">("9");
+  const [mode, setMode] = useState<Mode>("9");
+
   const [sessionWords, setSessionWords] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -18,28 +21,30 @@ export default function Home() {
   const [errors, setErrors] = useState<string[]>([]);
   const [finished, setFinished] = useState(false);
 
- function speakWord(word: string) {
-  let textToSpeak = word;
+  function speakWord(word: string) {
+    let textToSpeak = word;
 
-  if (mode === "10") {
-    textToSpeak = word
-      .replace(/пре/g, "прэ")
-      .replace(/при/g, "прэ");
+    if (mode === "10") {
+      textToSpeak = word
+        .replace(/пре/g, "прэ")
+        .replace(/при/g, "прэ");
+    }
+
+    const u = new SpeechSynthesisUtterance(textToSpeak);
+
+    u.lang = "ru-RU";
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
   }
-
-  const u = new SpeechSynthesisUtterance(textToSpeak);
-
-  u.lang = "ru-RU";
-
-  // ничего больше НЕ трогаем
-  speechSynthesis.speak(u);
-}
 
   function shuffle(arr: string[]) {
     return [...arr].sort(() => Math.random() - 0.5);
   }
 
   function startSession() {
+    if (mode === "12") return;
+
     const baseWords = mode === "9" ? words9 : words10;
 
     const selected = shuffle(baseWords).slice(0, SESSION_SIZE);
@@ -55,6 +60,10 @@ export default function Home() {
     speakWord(selected[0]);
   }
 
+  useEffect(() => {
+    startSession();
+  }, [mode]);
+
   function checkWord() {
     if (finished) return;
 
@@ -63,11 +72,8 @@ export default function Home() {
 
     const ok = user === correct;
 
-    let newErrors = errors;
-
     if (!ok) {
-      newErrors = [...errors, currentWord];
-      setErrors(newErrors);
+      setErrors((prev) => [...prev, currentWord]);
       setResult(`❌ ${currentWord}`);
     } else {
       setResult("✅ Правильно");
@@ -88,30 +94,79 @@ export default function Home() {
     setInput("");
     speakWord(nextWord);
   }
+  if (mode === "12") {
+    return (
+      <>
+        <div className="flex justify-center gap-3 p-4 bg-black">
+          <button
+            onClick={() => setMode("9")}
+            className="px-4 py-2 rounded-xl bg-zinc-800 text-white"
+          >
+            9 задание
+          </button>
 
-  useEffect(() => {
-    if (mode !== "12") {
-      startSession();
-    }
-  }, [mode]);
+          <button
+            onClick={() => setMode("10")}
+            className="px-4 py-2 rounded-xl bg-zinc-800 text-white"
+          >
+            ПРЕ / ПРИ
+          </button>
+
+          <button
+            className="px-4 py-2 rounded-xl bg-white text-black"
+          >
+            12 задание
+          </button>
+        </div>
+
+        <Task12 />
+      </>
+    );
+  }
 
   if (finished) {
-    return mode === "12" ? (
-      <Task12 />
-    ) : (
-<main className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 px-4">
+    return (
       <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 px-4">
 
-        <h1 className="text-3xl font-bold">Сессия завершена 🎉</h1>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setMode("9")}
+            className={`px-4 py-2 rounded-xl ${
+              mode === "9" ? "bg-white text-black" : "bg-zinc-800"
+            }`}
+          >
+            9 задание
+          </button>
 
-        <div className="text-xl">Ошибки:</div>
+          <button
+            onClick={() => setMode("10")}
+            className={`px-4 py-2 rounded-xl ${
+              mode === "10" ? "bg-white text-black" : "bg-zinc-800"
+            }`}
+          >
+            ПРЕ / ПРИ
+          </button>
+
+          <button
+            onClick={() => setMode("12")}
+            className="px-4 py-2 rounded-xl bg-zinc-800"
+          >
+            12 задание
+          </button>
+        </div>
+
+        <h1 className="text-3xl font-bold">
+          Сессия завершена 🎉
+        </h1>
+
+        <div className="text-xl">
+          Ошибки:
+        </div>
 
         <ul className="text-red-400 text-lg">
-          {errors.length === 0 ? (
-            <li>нет ошибок 🔥</li>
-          ) : (
-            errors.map((e, i) => <li key={i}>{e}</li>)
-          )}
+          {errors.length === 0
+            ? <li>нет ошибок 🔥</li>
+            : errors.map((e, i) => <li key={i}>{e}</li>)}
         </ul>
 
         <button
@@ -120,91 +175,82 @@ export default function Home() {
         >
           начать заново
         </button>
+
       </main>
     );
   }
+return (
+  <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 px-4">
 
-  return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 px-4">
-
-      {/* MODE SELECT */}
-      <div className="flex gap-3 mb-4">
-        <button
-          onClick={() => setMode("9")}
-          className={`px-4 py-2 rounded-xl ${
-            mode === "9" ? "bg-white text-black" : "bg-zinc-800"
-          }`}
-        >
-          9 задание
-        </button>
-
-        <button
-          onClick={() => setMode("10")}
-          className={`px-4 py-2 rounded-xl ${
-            mode === "10" ? "bg-white text-black" : "bg-zinc-800"
-          }`}
-        >
-          ПРЕ / ПРИ
-        </button>
-
-        <button
-          onClick={() => setMode("12")}
-          className={`px-4 py-2 rounded-xl ${
-            mode === "12" ? "bg-white text-black" : "bg-zinc-800"
-          }`}
-        >
-          12 задание
-        </button>
-      </div>
-
-      {/* PROGRESS */}
-      <div className="text-xl">
-        {currentIndex} / {SESSION_SIZE}
-      </div>
-
-      {/* SOUND */}
+    <div className="flex gap-3 mb-4">
       <button
-        onClick={() => speakWord(currentWord)}
-        className="text-6xl"
+        onClick={() => setMode("9")}
+        className={`px-4 py-2 rounded-xl ${
+          mode === "9" ? "bg-white text-black" : "bg-zinc-800"
+        }`}
       >
-        🔊
+        9 задание
       </button>
 
-      {/* INPUT */}
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && checkWord()}
-        autoCorrect="off"
-        autoCapitalize="none"
-        spellCheck={false}
-        inputMode="text"
-        className="bg-zinc-900 px-4 py-3 text-2xl rounded-xl w-full max-w-xl"
-        placeholder="введите слово"
-      />
+      <button
+        onClick={() => setMode("10")}
+        className={`px-4 py-2 rounded-xl ${
+          mode === "10" ? "bg-white text-black" : "bg-zinc-800"
+        }`}
+      >
+        ПРЕ / ПРИ
+      </button>
 
-      {/* RESULT */}
-      <div className="text-2xl h-10">
-        {result}
-      </div>
+      <button
+        onClick={() => setMode("12")}
+        className="px-4 py-2 rounded-xl bg-zinc-800"
+      >
+        12 задание
+      </button>
+    </div>
 
-      {/* BUTTONS */}
-      <div className="flex gap-4">
-        <button
-          onClick={checkWord}
-          className="bg-white text-black px-6 py-3 rounded-xl font-bold"
-        >
-          проверить
-        </button>
+    <div className="text-xl">
+      {currentIndex + 1} / {SESSION_SIZE}
+    </div>
 
-        <button
-          onClick={startSession}
-          className="bg-zinc-800 px-6 py-3 rounded-xl"
-        >
-          заново
-        </button>
-      </div>
+    <button
+      onClick={() => speakWord(currentWord)}
+      className="text-6xl"
+    >
+      🔊
+    </button>
 
-    </main>
-  );
+    <input
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      onKeyDown={(e) => e.key === "Enter" && checkWord()}
+      autoCorrect="off"
+      autoCapitalize="none"
+      spellCheck={false}
+      className="bg-zinc-900 px-4 py-3 text-2xl rounded-xl w-full max-w-xl"
+      placeholder="введите слово"
+    />
+
+    <div className="text-2xl h-10">
+      {result}
+    </div>
+
+    <div className="flex gap-4">
+      <button
+        onClick={checkWord}
+        className="bg-white text-black px-6 py-3 rounded-xl font-bold"
+      >
+        проверить
+      </button>
+
+      <button
+        onClick={startSession}
+        className="bg-zinc-800 px-6 py-3 rounded-xl"
+      >
+        заново
+      </button>
+    </div>
+
+  </main>
+);
 }
