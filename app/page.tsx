@@ -94,11 +94,12 @@ export default function Home() {
       startSession();
     }
   }, [mode]);
-  if (mode === "12") {
-    return <Task12 />;
-  }
+
   if (finished) {
-    return (
+    return mode === "12" ? (
+      <Task12 />
+    ) : (
+<main className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 px-4">
       <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-6 px-4">
 
         <h1 className="text-3xl font-bold">Сессия завершена 🎉</h1>
